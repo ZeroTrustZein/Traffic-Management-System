@@ -1,0 +1,70 @@
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Run schema + seed on first start
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Crow C++ backend ────────────────────────────────────────────────────────
+  crow:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.crow
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: >-
+        host=db
+        port=5432
+        dbname=${POSTGRES_DB}
+        user=${POSTGRES_USER}
+        password=${POSTGRES_PASSWORD}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Django gateway ──────────────────────────────────────────────────────────
+  django:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.django
+    restart: unless-stopped
+    environment:
+      CROW_BASE_URL:          http://crow:8080
+      DJANGO_SECRET_KEY:      ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG:           ${DJANGO_DEBUG:-False}
+      ALLOWED_HOSTS:          ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      DJANGO_API_KEY:         ${DJANGO_API_KEY}
+      EMAIL_BACKEND:          ${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      EMAIL_HOST:             ${EMAIL_HOST:-smtp.gmail.com}
+      EMAIL_PORT:             ${EMAIL_PORT:-587}
+      EMAIL_USE_TLS:          ${EMAIL_USE_TLS:-True}
+      EMAIL_HOST_USER:        ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD:    ${EMAIL_HOST_PASSWORD:-}
+      DEFAULT_FROM_EMAIL:     ${DEFAULT_FROM_EMAIL:-traffic-dept@example.com}
+      ADMIN_ALERT_EMAIL:      ${ADMIN_ALERT_EMAIL:-admin@example.com}
+      GOOGLE_MAPS_API_KEY:    ${GOOGLE_MAPS_API_KEY:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - crow
+
+volumes:
+  pgdata:

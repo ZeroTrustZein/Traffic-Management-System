@@ -1,0 +1,52 @@
+# ── Build artifacts ───────────────────────────────────────────────────────────
+build/
+backend/build/
+*.o
+*.a
+*.so
+*.exe
+*.dll
+
+# ── C++ dependencies ─────────────────────────────────────────────────────────
+vcpkg_installed/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── Django ────────────────────────────────────────────────────────────────────
+gateway/db.sqlite3
+
+# ── Logs & runtime output ────────────────────────────────────────────────────
+*.log
+# NOTE: do NOT ignore *.txt — that would exclude CMakeLists.txt and requirements.txt.
+
+# ── IDE / OS ─────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.p12
+*.pfx
+secrets/
+certs/
+
+# ── Internal tooling ─────────────────────────────────────────────────────────
+.trae/
+.uploads/
+.claude/

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Route Guidance — Traffic Management{% endblock %}
+{% block extra_head %}
+{% if not use_google_maps %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endif %}
+<style>
+  #routeMap { height: 60vh; border-radius: .75rem; }
+  .badge-LOW      { background:#198754; }
+  .badge-MODERATE { background:#fd7e14; }
+  .badge-HIGH     { background:#dc3545; }
+  .badge-SEVERE   { background:#6f42c1; }
+</style>
+{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2"></i>Route Guidance</h4>
+
+<div class="card p-4 mb-3">
+  <form method="post" class="row g-2 align-items-end">
+    {% csrf_token %}
+    <div class="col-md-4">
+      <label class="form-label small mb-1">From junction</label>
+      <select class="form-select form-select-sm" name="from_junction_id" required>
+        <option value="">— select —</option>
+        {% for j in junctions %}
+        <option value="{{ j.id }}" {% if route and route.from_junction_id == j.id %}selected{% endif %}>{{ j.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label small mb-1">To junction</label>
+      <select class="form-select form-select-sm" name="to_junction_id" required>
+        <option value="">— select —</option>
+        {% for j in junctions %}
+        <option value="{{ j.id }}" {% if route and route.to_junction_id == j.id %}selected{% endif %}>{{ j.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-auto">
+      <button class="btn btn-primary btn-sm" type="submit">
+        <i class="bi bi-search me-1"></i>Find Best Route
+      </button>
+    </div>
+    <div class="col-12 small text-muted mt-2">
+      The recommended route avoids junctions with HIGH or SEVERE congestion
+      by weighting each edge with a congestion penalty before running
+      Dijkstra's algorithm.
+    </div>
+  </form>
+</div>
+
+{% if error %}
+<div class="alert alert-warning">{{ error }}</div>
+{% endif %}
+
+{% if route %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="card p-3 text-center">
+      <div class="text-muted small text-uppercase">Estimated time</div>
+      <div class="display-6 fw-bold text-primary">{{ route.estimated_total_minutes|floatformat:1 }}</div>
+      <div class="text-muted small">minutes</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3 text-center">
+      <div class="text-muted small text-uppercase">Total distance</div>
+      <div class="display-6 fw-bold text-info">{{ route.total_distance_km|floatformat:2 }}</div>
+      <div class="text-muted small">km</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3 text-center">
+      <div class="text-muted small text-uppercase">Hops</div>
+      <div class="display-6 fw-bold text-warning">{{ route.hops }}</div>
+      <div class="text-muted small">{{ route.algorithm }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card p-3 mb-3">
+  <h6 class="fw-bold mb-3">Turn-by-turn</h6>
+  <ol class="list-group list-group-numbered list-group-flush">
+    {% for step in route.steps %}
+    <li class="list-group-item d-flex justify-content-between align-items-start">
+      <div>
+        <strong>{{ step.instruction }}</strong>
+        <div class="small text-muted">
+          {{ step.from_junction_name }} → {{ step.to_junction_name }}
+          ({{ step.distance_km|floatformat:2 }} km @ {{ step.speed_limit_kmh }} km/h)
+        </div>
+      </div>
+      <div class="text-end">
+        <span class="badge badge-{{ step.congestion_level }} mb-1">{{ step.congestion_level }}</span>
+        <div class="small text-muted">~{{ step.estimated_minutes|floatformat:1 }} min</div>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</div>
+
+<div class="card p-2 mb-3">
+  <div id="routeMap"></div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if route %}
+<script>
+  const ROUTE = {{ route_json|safe }};
+  const JUNCTIONS = {{ junctions_json|safe }};
+  const junctionsById = {};
+  JUNCTIONS.forEach(j => {
+    junctionsById[j.id] = { name: j.name, lat: j.latitude || 0, lng: j.longitude || 0 };
+  });
+
+  function coords() {
+    const out = [];
+    if (!ROUTE || !ROUTE.steps) return out;
+    const first = junctionsById[ROUTE.from_junction_id];
+    if (first) out.push([first.lat, first.lng]);
+    ROUTE.steps.forEach(s => {
+      const j = junctionsById[s.to_junction_id];
+      if (j) out.push([j.lat, j.lng]);
+    });
+    return out.filter(([a, b]) => a && b);
+  }
+</script>
+
+{% if use_google_maps %}
+<script>
+  function initRouteMap() {
+    const pts = coords();
+    const map = new google.maps.Map(document.getElementById('routeMap'), {
+      zoom: 13,
+      center: pts.length
+        ? { lat: pts[0][0], lng: pts[0][1] }
+        : { lat: 51.3397, lng: 12.3731 },
+    });
+    new google.maps.Polyline({
+      path: pts.map(([lat, lng]) => ({ lat, lng })),
+      geodesic: true, strokeColor: '#0d6efd', strokeOpacity: 0.85, strokeWeight: 5, map,
+    });
+    pts.forEach((p, i) => {
+      new google.maps.Marker({
+        position: { lat: p[0], lng: p[1] }, map,
+        label: String(i + 1),
+      });
+    });
+  }
+</script>
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initRouteMap"></script>
+{% else %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const pts = coords();
+  // Default centre: Leipzig, Germany (city centre).
+  const map = L.map('routeMap').setView(
+    pts.length ? pts[0] : [51.3397, 12.3731], 13
+  );
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap',
+  }).addTo(map);
+  if (pts.length) {
+    L.polyline(pts, { color: '#0d6efd', weight: 5, opacity: 0.85 }).addTo(map);
+    pts.forEach((p, i) => L.marker(p).addTo(map).bindTooltip(String(i + 1), {permanent: true}));
+    map.fitBounds(L.latLngBounds(pts).pad(0.2));
+  }
+</script>
+{% endif %}
+{% endif %}
+{% endblock %}

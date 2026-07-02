@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Vehicles — Traffic Management{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-car-front me-2"></i>Vehicles</h4>
+  <a href="{% url 'vehicle_register' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Register Vehicle</a>
+</div>
+
+<div class="card p-4">
+  <form class="row g-2 mb-3" method="get">
+    <div class="col-auto">
+      <input class="form-control" name="q" placeholder="Search plate…" value="{{ query }}">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-outline-secondary">Search</button>
+      {% if query %}<a href="{% url 'vehicle_list' %}" class="btn btn-link">Clear</a>{% endif %}
+    </div>
+  </form>
+
+  {% if vehicles %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr><th>Plate</th><th>Type</th><th>Owner</th><th>Status</th><th>Registered</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for v in vehicles %}
+        <tr>
+          <td><span class="fw-mono fw-semibold">{{ v.number_plate }}</span></td>
+          <td>{{ v.vehicle_type }}</td>
+          <td>{{ v.owner.full_name|default:"—" }}</td>
+          <td>
+            {% if v.is_active %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ v.created_at|slice:":16" }}</td>
+          <td><a href="{% url 'vehicle_detail' v.number_plate %}" class="btn btn-sm btn-outline-primary">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="text-muted small">{{ vehicles|length }} vehicle(s) found.</div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-car-front fs-1 d-block mb-2"></i>
+    No vehicles found. <a href="{% url 'vehicle_register' %}">Register one now.</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

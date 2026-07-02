@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Violations — Traffic Management{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-4"><i class="bi bi-exclamation-triangle me-2"></i>Violations</h4>
+
+<div class="row g-3 mb-4">
+  <!-- Detect panel -->
+  <div class="col-lg-4">
+    <div class="card p-4 h-100">
+      <h6 class="fw-bold mb-3 text-muted text-uppercase" style="font-size:.75rem;">Detect Violations</h6>
+      <p class="small text-muted">Scan recent plate logs at a junction for unprocessed speeding, red-light, and parking events and auto-issue fines.</p>
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-2">
+          <label class="form-label small">Junction</label>
+          <select class="form-select form-select-sm" name="junction_id">
+            {% for j in junctions %}
+            <option value="{{ j.id }}">{{ j.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small">Look-back window</label>
+          <select class="form-select form-select-sm" name="hours_back">
+            <option value="1">Last 1 hour</option>
+            <option value="3">Last 3 hours</option>
+            <option value="6">Last 6 hours</option>
+            <option value="24">Last 24 hours</option>
+          </select>
+        </div>
+        <button class="btn btn-danger btn-sm w-100" name="detect" value="1">
+          <i class="bi bi-search me-1"></i>Detect &amp; Issue Fines
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Violation type summary -->
+  <div class="col-lg-8">
+    <div class="card p-4 h-100">
+      <h6 class="fw-bold mb-3 text-muted text-uppercase" style="font-size:.75rem;">Violation Type Catalogue</h6>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Code</th><th>Name</th><th>Base Fine</th></tr></thead>
+        <tbody>
+          {% for vt in violation_types %}
+          <tr>
+            <td><code>{{ vt.code }}</code></td>
+            <td>{{ vt.name }}</td>
+            <td>€ {{ vt.base_fine|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="text-muted small mt-2 mb-0">Final fine = base fine × severity multiplier (LOW 1×, MEDIUM 1.5×, HIGH 2×, CRITICAL 3×).</p>
+    </div>
+  </div>
+</div>
+
+<!-- Violations table -->
+<div class="card p-4">
+  <h6 class="fw-bold mb-3">All Violations</h6>
+  {% if violations %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr><th>#</th><th>Vehicle</th><th>Junction</th><th>Type</th><th>Severity</th><th>Evidence</th><th>Detected</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for v in violations %}
+        <tr>
+          <td class="text-muted small">{{ v.id }}</td>
+          <td>V#{{ v.vehicle_id }}</td>
+          <td class="small text-muted">{% if v.junction_id %}J{{ v.junction_id }}{% else %}—{% endif %}</td>
+          <td>T#{{ v.violation_type_id }}</td>
+          <td>
+            <span class="badge
+              {% if v.severity == 'CRITICAL' %}bg-danger
+              {% elif v.severity == 'HIGH' %}bg-warning text-dark
+              {% elif v.severity == 'MEDIUM' %}bg-info text-dark
+              {% else %}bg-secondary{% endif %}">
+              {{ v.severity }}
+            </span>
+          </td>
+          <td class="small text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            {{ v.evidence_note|default:"—" }}
+          </td>
+          <td class="small text-muted">{{ v.detected_at|slice:":16" }}</td>
+          <td><span class="badge bg-secondary">{{ v.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="text-muted small">{{ violations|length }} violation(s) total.</div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-check-circle fs-1 d-block mb-2 text-success"></i>No violations on record.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

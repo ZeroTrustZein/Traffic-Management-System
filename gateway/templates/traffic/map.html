@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Junction Map — Traffic Management{% endblock %}
+{% block extra_head %}
+{% if not use_google_maps %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endif %}
+<style>
+  #map { height: 70vh; border-radius: .75rem; }
+  .legend-dot { display:inline-block; width:.9rem; height:.9rem; border-radius:50%; margin-right:.35rem; vertical-align:middle; }
+</style>
+{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3"><i class="bi bi-geo-alt me-2"></i>Junction Map</h4>
+
+<div class="card p-3 mb-3">
+  <div class="small text-muted mb-2">
+    {{ junction_count }} junction{{ junction_count|pluralize }} loaded.
+    {% if use_google_maps %}
+      Rendered with the Google Maps Javascript API (optional).
+    {% else %}
+      Rendered with Leaflet + OpenStreetMap — the default, no API key
+      required. Test data is centred on Leipzig, Germany.
+    {% endif %}
+  </div>
+  <div>
+    <span class="me-3"><span class="legend-dot" style="background:#198754"></span>LOW</span>
+    <span class="me-3"><span class="legend-dot" style="background:#fd7e14"></span>MODERATE</span>
+    <span class="me-3"><span class="legend-dot" style="background:#dc3545"></span>HIGH</span>
+    <span class="me-3"><span class="legend-dot" style="background:#6f42c1"></span>SEVERE</span>
+  </div>
+</div>
+
+<div class="card p-2">
+  <div id="map"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const JUNCTIONS = {{ junctions_json|safe }};
+  const ROADS     = {{ roads_json|safe }};
+  const LEVEL_COLORS = {
+    LOW: '#198754', MODERATE: '#fd7e14', HIGH: '#dc3545', SEVERE: '#6f42c1'
+  };
+
+  // Compute a sensible map centre from the available coordinates.
+  // Default fallback is Leipzig, Germany (city centre).
+  const LEIPZIG_CENTER = { lat: 51.3397, lng: 12.3731 };
+  function center() {
+    const valid = JUNCTIONS.filter(j => j.latitude && j.longitude);
+    if (!valid.length) return LEIPZIG_CENTER;
+    const lat = valid.reduce((s, j) => s + j.latitude, 0) / valid.length;
+    const lng = valid.reduce((s, j) => s + j.longitude, 0) / valid.length;
+    return { lat, lng };
+  }
+</script>
+
+{% if use_google_maps %}
+<script>
+  function initMap() {
+    const map = new google.maps.Map(document.getElementById('map'), {
+      zoom: 13, center: center(),
+    });
+    const byId = new Map();
+    JUNCTIONS.forEach(j => {
+      if (!j.latitude || !j.longitude) return;
+      byId.set(j.id, j);
+      const color = LEVEL_COLORS[j.congestion_level] || '#6c757d';
+      const marker = new google.maps.Marker({
+        position: { lat: j.latitude, lng: j.longitude },
+        map, title: j.name,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 9, fillColor: color, fillOpacity: 0.9,
+          strokeColor: '#fff', strokeWeight: 2,
+        },
+      });
+      const info = new google.maps.InfoWindow({
+        content: `<strong>${j.name}</strong><br>${j.location || ''}<br>`
+               + `Speed limit: ${j.speed_limit_kmh} km/h<br>`
+               + `Congestion: ${j.congestion_level}`,
+      });
+      marker.addListener('click', () => info.open(map, marker));
+    });
+    ROADS.forEach(r => {
+      const f = byId.get(r.from_junction_id), t = byId.get(r.to_junction_id);
+      if (!f || !t) return;
+      new google.maps.Polyline({
+        path: [{ lat: f.latitude, lng: f.longitude },
+               { lat: t.latitude, lng: t.longitude }],
+        geodesic: true, strokeColor: '#1a2b45', strokeOpacity: 0.5, strokeWeight: 2.5, map,
+      });
+    });
+  }
+</script>
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap"></script>
+{% else %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const c = center();
+  const map = L.map('map').setView([c.lat, c.lng], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap',
+  }).addTo(map);
+
+  const byId = new Map();
+  JUNCTIONS.forEach(j => {
+    if (!j.latitude || !j.longitude) return;
+    byId.set(j.id, j);
+    const color = LEVEL_COLORS[j.congestion_level] || '#6c757d';
+    L.circleMarker([j.latitude, j.longitude], {
+      radius: 9, color: '#fff', weight: 2, fillColor: color, fillOpacity: 0.9,
+    }).addTo(map).bindPopup(
+      `<strong>${j.name}</strong><br>${j.location || ''}<br>`
+      + `Speed limit: ${j.speed_limit_kmh} km/h<br>`
+      + `Congestion: ${j.congestion_level}`
+    );
+  });
+  ROADS.forEach(r => {
+    const f = byId.get(r.from_junction_id), t = byId.get(r.to_junction_id);
+    if (!f || !t) return;
+    L.polyline([[f.latitude, f.longitude], [t.latitude, t.longitude]], {
+      color: '#1a2b45', weight: 2.5, opacity: 0.5,
+    }).addTo(map);
+  });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{{ vehicle.number_plate }} — Traffic Management{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{% url 'vehicle_list' %}" class="btn btn-sm btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <h4 class="fw-bold mb-0">Vehicle: {{ vehicle.number_plate }}</h4>
+</div>
+
+<div class="row g-3">
+  <!-- Vehicle Info -->
+  <div class="col-lg-4">
+    <div class="card p-4 mb-3">
+      <h6 class="fw-bold mb-3 text-muted text-uppercase" style="font-size:.75rem;">Vehicle Details</h6>
+      <dl class="row mb-0">
+        <dt class="col-5 text-muted small">Plate</dt>
+        <dd class="col-7 fw-semibold">{{ vehicle.number_plate }}</dd>
+        <dt class="col-5 text-muted small">Type</dt>
+        <dd class="col-7">{{ vehicle.vehicle_type }}</dd>
+        <dt class="col-5 text-muted small">Status</dt>
+        <dd class="col-7">
+          {% if vehicle.is_active %}<span class="badge bg-success">Active</span>
+          {% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+        </dd>
+        <dt class="col-5 text-muted small">Registered</dt>
+        <dd class="col-7 small">{{ vehicle.created_at|slice:":16" }}</dd>
+      </dl>
+    </div>
+
+    {% if vehicle.owner %}
+    <div class="card p-4 mb-3">
+      <h6 class="fw-bold mb-3 text-muted text-uppercase" style="font-size:.75rem;">Owner</h6>
+      <dl class="row mb-0">
+        <dt class="col-4 text-muted small">Name</dt>
+        <dd class="col-8">{{ vehicle.owner.full_name }}</dd>
+        <dt class="col-4 text-muted small">Email</dt>
+        <dd class="col-8 small">{{ vehicle.owner.email }}</dd>
+        {% if vehicle.owner.phone %}
+        <dt class="col-4 text-muted small">Phone</dt>
+        <dd class="col-8 small">{{ vehicle.owner.phone }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+    {% endif %}
+
+    <!-- Log plate at junction -->
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3 text-muted text-uppercase" style="font-size:.75rem;">Log at Junction</h6>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="log_junction" value="1">
+        <div class="mb-2">
+          <label class="form-label small">Junction</label>
+          <select class="form-select form-select-sm" name="junction_id">
+            {% for j in junctions %}
+            <option value="{{ j.id }}">{{ j.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">Event Type</label>
+          <select class="form-select form-select-sm" name="event_type">
+            <option value="PASSAGE">PASSAGE</option>
+            <option value="SPEEDING">SPEEDING</option>
+            <option value="RED_LIGHT">RED_LIGHT</option>
+            <option value="PARKING">PARKING</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small">Speed (km/h)</label>
+          <input class="form-control form-control-sm" name="speed_kmh" type="number" step="0.1" placeholder="Optional">
+        </div>
+        <button class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-camera me-1"></i>Log Detection</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Violations -->
+  <div class="col-lg-8">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Violations</h6>
+      {% if violations %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover">
+          <thead>
+            <tr><th>ID</th><th>Junction</th><th>Type</th><th>Severity</th><th>Detected</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for v in violations %}
+            <tr>
+              <td>#{{ v.id }}</td>
+              <td>J{{ v.junction_id }}</td>
+              <td>{{ v.violation_type_id }}</td>
+              <td>
+                <span class="badge
+                  {% if v.severity == 'CRITICAL' %}bg-danger
+                  {% elif v.severity == 'HIGH' %}bg-warning text-dark
+                  {% elif v.severity == 'MEDIUM' %}bg-info text-dark
+                  {% else %}bg-secondary{% endif %}">
+                  {{ v.severity }}
+                </span>
+              </td>
+              <td class="small text-muted">{{ v.detected_at|slice:":16" }}</td>
+              <td><span class="badge bg-secondary">{{ v.status }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="bi bi-check-circle fs-2 d-block mb-2 text-success"></i>
+        No violations recorded for this vehicle.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

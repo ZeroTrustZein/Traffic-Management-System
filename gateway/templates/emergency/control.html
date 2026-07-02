@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Emergency Control — Traffic Management{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3"><i class="bi bi-life-preserver me-2"></i>Emergency Control</h4>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold mb-3">Create Emergency Event</h6>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+
+        <div class="mb-3">
+          <label class="form-label">Emergency vehicle</label>
+          <select class="form-select" name="emergency_vehicle_id" required>
+            <option value="" selected disabled>Select a vehicle</option>
+            {% for v in emergency_vehicles %}
+              <option value="{{ v.id }}">{{ v.identifier }} ({{ v.type }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Start junction</label>
+          <select class="form-select" name="start_junction_id" required>
+            <option value="" selected disabled>Select start</option>
+            {% for j in junctions %}
+              <option value="{{ j.id }}">{{ j.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Target junction</label>
+          <select class="form-select" name="target_junction_id" required>
+            <option value="" selected disabled>Select target</option>
+            {% for j in junctions %}
+              <option value="{{ j.id }}">{{ j.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button class="btn btn-primary w-100" type="submit">
+          Compute route
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold mb-3">Current Event</h6>
+      {% if event %}
+        <div class="mb-2">
+          <span class="text-muted">Event:</span>
+          <span class="fw-semibold">#{{ event.event_id|default:event.id }}</span>
+        </div>
+        <div class="mb-2">
+          <span class="text-muted">From:</span>
+          <span class="fw-semibold">{{ event.start_junction_name|default:"" }}</span>
+        </div>
+        <div class="mb-2">
+          <span class="text-muted">To:</span>
+          <span class="fw-semibold">{{ event.target_junction_name|default:"" }}</span>
+        </div>
+        <div class="mb-3">
+          <span class="text-muted">Estimated time:</span>
+          <span class="fw-semibold">{{ event.estimated_minutes|floatformat:1 }} min</span>
+        </div>
+
+        <div class="mb-3">
+          <div class="text-muted mb-1">Route (junction ids)</div>
+          <div class="small">
+            {% if event.route %}
+              {{ event.route }}
+            {% else %}
+              No route returned.
+            {% endif %}
+          </div>
+        </div>
+
+        <form method="post" class="d-grid gap-2">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="notify">
+          <input type="hidden" name="event_id" value="{{ event.event_id|default:event.id }}">
+          <button class="btn btn-warning" type="submit">
+            Notify drivers
+          </button>
+        </form>
+
+        {% if drivers %}
+          <hr>
+          <div class="text-muted mb-2">Drivers notified</div>
+          <ul class="mb-0">
+            {% for d in drivers %}
+              <li class="small">{{ d.full_name }} — {{ d.email }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      {% else %}
+        <div class="text-muted">Create an event to see the route and notify drivers.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

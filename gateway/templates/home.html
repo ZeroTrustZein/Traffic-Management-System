@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Gateway Home — Traffic Management{% endblock %}
+{% block content %}
+<div class="card p-4 mb-4">
+  <h1 class="h3 fw-bold mb-3">Traffic Management Gateway</h1>
+  <p class="text-muted mb-3">
+    This frontend is intentionally minimal. The primary submission path is the Django gateway API,
+    while the pages below remain available only as a lightweight demo surface.
+  </p>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ api_base_url }}" class="btn btn-primary">Open API Base</a>
+    <a href="{% url 'vehicle_list' %}" class="btn btn-outline-secondary">Open Optional UI</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card p-4 h-100">
+      <h5 class="fw-bold mb-3">Primary Usage</h5>
+      <ul class="mb-0">
+        <li>Send API requests to <code>{{ api_base_url }}</code></li>
+        <li>Use Postman or curl through Django on port <code>8000</code></li>
+        <li>Treat direct Crow access on port <code>8080</code> as debug-only</li>
+        <li>Use Docker Compose as the default run path</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-4 h-100">
+      <h5 class="fw-bold mb-3">Optional Demo Pages</h5>
+      <div class="d-flex flex-wrap gap-2">
+        {% for page in optional_pages %}
+        <a href="{% url page.url %}" class="btn btn-sm btn-outline-primary">{{ page.name }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

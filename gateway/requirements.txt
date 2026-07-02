@@ -1,0 +1,5 @@
+# Django gateway runtime dependencies.
+# Pinned to supported patched releases compatible with Python 3.11
+# (see docker/Dockerfile.django).
+Django==5.2.15
+requests==2.34.2

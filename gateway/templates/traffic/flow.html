@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Traffic Flow — Traffic Management{% endblock %}
+{% block extra_head %}
+<style>
+  .chart-container { position: relative; height: 300px; }
+</style>
+{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-4"><i class="bi bi-bar-chart-line me-2"></i>Traffic Flow Analysis</h4>
+
+<!-- Hourly profile chart — traffic at different times of day -->
+<div class="card p-4 mb-4">
+  <h6 class="fw-bold mb-1">Average Traffic by Hour of Day</h6>
+  <p class="text-muted small mb-3">Shows which hours are busiest across all recorded analysis windows.</p>
+  <div class="chart-container">
+    <canvas id="hourlyChart"></canvas>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Historical time-series chart -->
+  <div class="col-lg-8">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-1">Vehicle Count — Recorded Windows</h6>
+      <p class="text-muted small mb-3">Each bar is one recorded analysis window, plotted in time order.</p>
+      <div class="chart-container">
+        <canvas id="flowChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Junction list -->
+  <div class="col-lg-4">
+    <div class="card p-4 h-100">
+      <h6 class="fw-bold mb-3">Junctions</h6>
+      {% for j in junctions %}
+      <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+        <div>
+          <div class="fw-semibold small">{{ j.name }}</div>
+          <div class="text-muted" style="font-size:.75rem;">{{ j.location }}</div>
+        </div>
+        <span class="badge bg-secondary">{{ j.speed_limit_kmh }} km/h</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Recent congestion records table -->
+<div class="card p-4">
+  <h6 class="fw-bold mb-3">Recent Congestion Records</h6>
+  {% if congestion_records %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover">
+      <thead>
+        <tr><th>Junction</th><th>Window Start</th><th>Window End</th><th>Vehicles</th><th>Level</th></tr>
+      </thead>
+      <tbody>
+        {% for cr in congestion_records %}
+        <tr>
+          <td>J{{ cr.junction_id }}</td>
+          <td class="small text-muted">{{ cr.time_window_start|slice:":16" }}</td>
+          <td class="small text-muted">{{ cr.time_window_end|slice:":16" }}</td>
+          <td>{{ cr.vehicle_count }}</td>
+          <td><span class="badge badge-{{ cr.congestion_level }}">{{ cr.congestion_level }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">No congestion records yet. Use the <a href="{% url 'congestion' %}">Congestion</a> page to run an analysis.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const palette = [
+  '#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6',
+  '#06b6d4','#ec4899','#84cc16',
+];
+
+// ── Chart 1: Average traffic by hour of day ───────────────────────────────────
+const hourlyData = {{ hourly_data_json|safe }};
+
+if (hourlyData.length > 0) {
+  // Build 0–23 labels; fill missing hours with 0
+  const hourLabels = Array.from({length: 24}, (_, i) => `${String(i).padStart(2,'0')}:00`);
+
+  const hourlyDatasets = hourlyData.map((j, i) => {
+    const byHour = {};
+    j.hours.forEach(h => { byHour[h.hour] = h.avg_count; });
+    return {
+      label: j.name,
+      data:  hourLabels.map((_, h) => byHour[h] ?? 0),
+      backgroundColor: palette[i % palette.length] + 'bb',
+      borderColor:     palette[i % palette.length],
+      borderWidth: 1,
+    };
+  });
+
+  new Chart(document.getElementById('hourlyChart'), {
+    type: 'bar',
+    data: { labels: hourLabels, datasets: hourlyDatasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: avg ${ctx.parsed.y} vehicles` } },
+      },
+      scales: {
+        x: { title: { display: true, text: 'Hour of Day' } },
+        y: { beginAtZero: true, title: { display: true, text: 'Avg Vehicles' } },
+      },
+    },
+  });
+} else {
+  document.getElementById('hourlyChart').parentElement.innerHTML =
+    '<p class="text-muted text-center py-4">No data yet — run a congestion analysis first.</p>';
+}
+
+// ── Chart 2: Historical time-series ───────────────────────────────────────────
+const flowData = {{ flow_data_json|safe }};
+
+if (flowData.length > 0) {
+  const allLabels = new Set();
+  flowData.forEach(j => j.data.forEach(d => allLabels.add(d.time.slice(0,16))));
+  const labels = Array.from(allLabels).sort();
+
+  const flowDatasets = flowData.map((j, i) => {
+    const countMap = {};
+    j.data.forEach(d => { countMap[d.time.slice(0,16)] = d.count; });
+    return {
+      label: `J${j.junction_id}`,
+      data:  labels.map(l => countMap[l] ?? 0),
+      backgroundColor: palette[i % palette.length] + '99',
+      borderColor:     palette[i % palette.length],
+      borderWidth: 1,
+    };
+  });
+
+  new Chart(document.getElementById('flowChart'), {
+    type: 'bar',
+    data: { labels, datasets: flowDatasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { ticks: { maxRotation: 45, font: { size: 9 } } },
+        y: { beginAtZero: true, title: { display: true, text: 'Vehicles' } },
+      },
+    },
+  });
+} else {
+  document.getElementById('flowChart').parentElement.innerHTML =
+    '<p class="text-muted text-center py-4">No recorded windows yet.</p>';
+}
+</script>
+{% endblock %}

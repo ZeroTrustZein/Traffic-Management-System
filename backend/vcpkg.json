@@ -1,0 +1,7 @@
+{
+  "name": "traffic-management-backend",
+  "version": "0.1.0",
+  "dependencies": [
+    "crow"
+  ]
+}

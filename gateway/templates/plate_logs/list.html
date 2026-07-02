@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Plate Logs — Traffic Management{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-4"><i class="bi bi-camera me-2"></i>Plate Logs</h4>
+
+<div class="card p-4">
+  <form class="row g-2 mb-3" method="get">
+    <div class="col-auto">
+      <select class="form-select form-select-sm" name="junction_id">
+        <option value="">All Junctions</option>
+        {% for j in junctions %}
+        <option value="{{ j.id }}" {% if selected_jid == j.id|stringformat:"s" %}selected{% endif %}>{{ j.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-sm btn-outline-secondary">Filter</button>
+      {% if selected_jid %}<a href="{% url 'plate_logs' %}" class="btn btn-sm btn-link">Clear</a>{% endif %}
+    </div>
+  </form>
+
+  {% if logs %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle">
+      <thead>
+        <tr><th>#</th><th>Plate</th><th>Junction</th><th>Event</th><th>Speed</th><th>Status</th><th>Detected</th></tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="text-muted small">{{ log.id }}</td>
+          <td>
+            <span class="fw-semibold">{{ log.number_plate }}</span>
+            {% if log.vehicle_id %}<a href="{% url 'vehicle_detail' log.number_plate %}" class="ms-1 small text-decoration-none"><i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
+          </td>
+          <td class="small text-muted">J{{ log.junction_id }}</td>
+          <td>
+            <span class="badge
+              {% if log.event_type == 'SPEEDING' %}bg-danger
+              {% elif log.event_type == 'RED_LIGHT' %}bg-danger
+              {% elif log.event_type == 'PARKING' %}bg-warning text-dark
+              {% else %}bg-secondary{% endif %}">
+              {{ log.event_type }}
+            </span>
+          </td>
+          <td class="small">{% if log.speed_kmh %}{{ log.speed_kmh }} km/h{% else %}—{% endif %}</td>
+          <td>
+            <span class="badge {% if log.status == 'REGISTERED' %}bg-success{% else %}bg-danger{% endif %}">
+              {{ log.status }}
+            </span>
+          </td>
+          <td class="text-muted small">{{ log.detected_at|slice:":16" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="text-muted small">{{ logs|length }} log(s) shown.</div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-camera fs-1 d-block mb-2"></i>No plate logs found.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

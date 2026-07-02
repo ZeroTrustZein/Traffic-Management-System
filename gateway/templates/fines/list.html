@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Fines — Traffic Management{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-4"><i class="bi bi-receipt me-2"></i>Fines</h4>
+
+<div class="card p-4">
+  {% if fines %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr><th>Fine #</th><th>Plate</th><th>Owner</th><th>Amount</th><th>Status</th><th>Issued</th><th>Due</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for f in fines %}
+        <tr>
+          <td class="text-muted small">#{{ f.id }}</td>
+          <td>
+            {% if f.vehicle.number_plate %}
+            <a href="{% url 'vehicle_detail' f.vehicle.number_plate %}" class="fw-semibold text-decoration-none">
+              {{ f.vehicle.number_plate }}
+            </a>
+            {% else %}—{% endif %}
+          </td>
+          <td class="small">
+            {% if f.owner %}{{ f.owner.full_name }}<br><span class="text-muted">{{ f.owner.email }}</span>{% else %}—{% endif %}
+          </td>
+          <td class="fw-semibold">€ {{ f.amount|floatformat:2 }}</td>
+          <td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td>
+          <td class="small text-muted">{{ f.issued_at|slice:":16" }}</td>
+          <td class="small text-muted">{{ f.due_date|slice:":10"|default:"—" }}</td>
+          <td>
+            {% if f.status == 'PENDING' or f.status == 'OVERDUE' %}
+            <form method="post" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="fine_id" value="{{ f.id }}">
+              <button class="btn btn-success btn-sm" name="action" value="pay">Pay</button>
+              <button class="btn btn-outline-danger btn-sm ms-1" name="action" value="cancel"
+                      onclick="return confirm('Cancel fine #{{ f.id }}?')">Cancel</button>
+            </form>
+            {% else %}
+            <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Summary row -->
+  <div class="row g-3 mt-1">
+    <div class="col-auto">
+      <span class="badge badge-PENDING p-2">
+        Pending: {{ fines|length }}
+      </span>
+    </div>
+    <div class="col-auto text-muted small pt-2">
+      Total fines: {{ fines|length }}
+    </div>
+  </div>
+
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-receipt fs-1 d-block mb-2"></i>No fines on record yet.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

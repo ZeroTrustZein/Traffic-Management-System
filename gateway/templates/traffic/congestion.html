@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Congestion — Traffic Management{% endblock %}
+{% block extra_head %}
+<style>.chart-container { position: relative; height: 280px; }</style>
+{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-4"><i class="bi bi-thermometer-high me-2"></i>Congestion Analysis</h4>
+
+<!-- Analyze panel -->
+<div class="card p-4 mb-4">
+  <h6 class="fw-bold mb-3 text-muted text-uppercase" style="font-size:.75rem;">Run Analysis</h6>
+  <form method="post" class="row g-2 align-items-end">
+    {% csrf_token %}
+    <div class="col-auto">
+      <label class="form-label small">Junction</label>
+      <select class="form-select form-select-sm" name="junction_id">
+        {% for j in junctions %}
+        <option value="{{ j.id }}">{{ j.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small">Window</label>
+      <select class="form-select form-select-sm" name="window_hours">
+        <option value="1">1 hour</option>
+        <option value="2">2 hours</option>
+        <option value="3">3 hours</option>
+        <option value="6">6 hours</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary btn-sm" name="analyze" value="1">
+        <i class="bi bi-play-fill me-1"></i>Analyze
+      </button>
+    </div>
+    <div class="col-auto text-muted small pt-3">
+      Congestion alerts are emailed automatically when level is HIGH or SEVERE.
+    </div>
+  </form>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Congestion-prone chart -->
+  <div class="col-lg-6">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3">Congestion-Prone Junctions (Avg Vehicles)</h6>
+      <div class="chart-container">
+        <canvas id="proneChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Predictions -->
+  <div class="col-lg-6">
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3">Predicted Next Window</h6>
+      <!-- Filled by JS using predictions_json -->
+      <div id="predTable"><p class="text-muted small">Loading predictions…</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- Prone junctions summary table -->
+<div class="card p-4">
+  <h6 class="fw-bold mb-3">Summary: Congestion-Prone Junctions</h6>
+  {% if prone_junctions %}
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead><tr><th>Junction</th><th>Avg Vehicles/Window</th><th>Worst Level</th></tr></thead>
+      <tbody>
+        {% for j in prone_junctions %}
+        <tr>
+          <td>{{ j.name }}</td>
+          <td>{{ j.avg_vehicle_count|floatformat:1 }}</td>
+          <td><span class="badge badge-{{ j.worst_level }}">{{ j.worst_level }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">No congestion data yet. Run an analysis above.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Prone junctions bar chart
+const proneData   = {{ prone_junctions_json|safe }};
+const predictions = {{ predictions_json|safe }};
+const junctions   = {{ junctions_json|safe }};
+const levelColors = {
+  LOW: '#198754', MODERATE: '#fd7e14', HIGH: '#dc3545', SEVERE: '#6f42c1'
+};
+
+new Chart(document.getElementById('proneChart'), {
+  type: 'bar',
+  data: {
+    labels: proneData.map(j => j.name.split(' - ')[0] || j.name),
+    datasets: [{
+      label: 'Avg Vehicles',
+      data: proneData.map(j => j.avg_vehicle_count),
+      backgroundColor: proneData.map(j => (levelColors[j.worst_level] || '#6c757d') + 'bb'),
+      borderColor:     proneData.map(j => levelColors[j.worst_level] || '#6c757d'),
+      borderWidth: 1,
+    }],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: 'Avg Vehicles' } },
+      x: { ticks: { font: { size: 11 } } },
+    },
+  },
+});
+const tbody = document.createElement('table');
+tbody.className = 'table table-sm mt-2';
+tbody.innerHTML = '<thead><tr><th>Junction</th><th>Est. Count</th><th>Level</th><th>Divert?</th></tr></thead>';
+const tb = document.createElement('tbody');
+junctions.forEach(j => {
+  const pred = predictions[j.id] || {};
+  const level = pred.predicted_level || '—';
+  const color = levelColors[level] || '#6c757d';
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="small">${j.name.split(' - ')[0]}</td>
+    <td>${pred.predicted_count ? pred.predicted_count.toFixed(1) : '—'}</td>
+    <td><span class="badge" style="background:${color}">${level}</span></td>
+    <td>${pred.recommend_diversion ? '<i class="bi bi-exclamation-triangle text-warning"></i> Yes' : '<i class="bi bi-check text-success"></i>'}</td>
+  `;
+  tb.appendChild(tr);
+});
+tbody.appendChild(tb);
+document.getElementById('predTable').replaceWith(tbody);
+</script>
+{% endblock %}
