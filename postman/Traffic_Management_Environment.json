@@ -1,107 +1,107 @@
 {
-  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "name": "Traffic Management — Local Docker",
-  "values": [
-    {
-      "key": "crow_base",
-      "value": "http://localhost:8080",
-      "type": "default",
-      "enabled": true,
-      "description": "Crow C++ backend (direct)"
-    },
-    {
-      "key": "django_base",
-      "value": "http://localhost:8000",
-      "type": "default",
-      "enabled": true,
-      "description": "Django gateway (browser UI)"
-    },
-    {
-      "key": "default_owner_email",
-      "value": "alex.carter@example.com",
-      "type": "default",
-      "enabled": true,
-      "description": "Default owner / admin email for demo and notifications"
-    },
-    {
-      "key": "example_plate",
-      "value": "AB12CDE",
-      "type": "default",
-      "enabled": true,
-      "description": "Seeded vehicle plate (Alex Carter, CAR)"
-    },
-    {
-      "key": "example_junction_id",
-      "value": "1",
-      "type": "default",
-      "enabled": true,
-      "description": "Junction 1 - City Centre (speed limit 50 km/h)"
-    },
-    {
-      "key": "example_vehicle_id",
-      "value": "1",
-      "type": "default",
-      "enabled": true,
-      "description": "Vehicle ID for AB12CDE (Alex Carter)"
-    },
-    {
-      "key": "django_api_key",
-      "value": "set-from-local-.env-when-using-gateway",
-      "type": "default",
-      "enabled": true,
-      "description": "Copy the local DJANGO_API_KEY value here when testing through the Django gateway"
-    },
-    {
-      "key": "example_violation_id",
-      "value": "1",
-      "type": "default",
-      "enabled": true,
-      "description": "First seeded violation"
-    },
-    {
-      "key": "example_fine_id",
-      "value": "1",
-      "type": "default",
-      "enabled": true,
-      "description": "First seeded fine"
-    },
-    {
-      "key": "example_window_hours",
-      "value": "3",
-      "type": "default",
-      "enabled": true,
-      "description": "Hours back to scan when analysing traffic"
-    },
-    {
-      "key": "new_plate",
-      "value": "ZZ99NEW",
-      "type": "default",
-      "enabled": true,
-      "description": "Plate to use when registering a brand-new vehicle in tests"
-    },
-    {
-      "key": "emergency_vehicle_id",
-      "value": "1",
-      "type": "default",
-      "enabled": true,
-      "description": "Seeded emergency vehicle id for demo"
-    },
-    {
-      "key": "emergency_start_junction_id",
-      "value": "2",
-      "type": "default",
-      "enabled": true,
-      "description": "Emergency start junction id for demo"
-    },
-    {
-      "key": "emergency_target_junction_id",
-      "value": "5",
-      "type": "default",
-      "enabled": true,
-      "description": "Emergency target junction id for demo"
-    }
-  ],
-  "_postman_variable_scope": "environment",
-  "_postman_exported_at": "2026-05-12T00:00:00.000Z",
-  "_postman_exported_using": "Postman"
+    "id":  "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name":  "Traffic Management — Local Docker",
+    "values":  [
+                   {
+                       "key":  "crow_base",
+                       "value":  "http://localhost:8000",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Primary API base through the Django gateway (historical variable name retained for collection compatibility)"
+                   },
+                   {
+                       "key":  "django_base",
+                       "value":  "http://localhost:8000",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Django gateway web UI base"
+                   },
+                   {
+                       "key":  "default_owner_email",
+                       "value":  "alex.carter@example.com",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Default owner / admin email for demo and notifications"
+                   },
+                   {
+                       "key":  "example_plate",
+                       "value":  "AB12CDE",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Seeded vehicle plate (Alex Carter, CAR)"
+                   },
+                   {
+                       "key":  "example_junction_id",
+                       "value":  "1",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Junction 1 - City Centre (speed limit 50 km/h)"
+                   },
+                   {
+                       "key":  "example_vehicle_id",
+                       "value":  "1",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Vehicle ID for AB12CDE (Alex Carter)"
+                   },
+                   {
+                       "key":  "django_api_key",
+                       "value":  "set-from-local-.env-when-using-gateway",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Copy the local DJANGO_API_KEY value here when testing through the Django gateway"
+                   },
+                   {
+                       "key":  "example_violation_id",
+                       "value":  "1",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "First seeded violation"
+                   },
+                   {
+                       "key":  "example_fine_id",
+                       "value":  "1",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "First seeded fine"
+                   },
+                   {
+                       "key":  "example_window_hours",
+                       "value":  "3",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Hours back to scan when analysing traffic"
+                   },
+                   {
+                       "key":  "new_plate",
+                       "value":  "ZZ99NEW",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Plate to use when registering a brand-new vehicle in tests"
+                   },
+                   {
+                       "key":  "emergency_vehicle_id",
+                       "value":  "1",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Seeded emergency vehicle id for demo"
+                   },
+                   {
+                       "key":  "emergency_start_junction_id",
+                       "value":  "2",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Emergency start junction id for demo"
+                   },
+                   {
+                       "key":  "emergency_target_junction_id",
+                       "value":  "5",
+                       "type":  "default",
+                       "enabled":  true,
+                       "description":  "Emergency target junction id for demo"
+                   }
+               ],
+    "_postman_variable_scope":  "environment",
+    "_postman_exported_at":  "2026-05-12T00:00:00.000Z",
+    "_postman_exported_using":  "Postman"
 }

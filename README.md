@@ -67,7 +67,7 @@ PostgreSQL :5432
 
 | Layer | Technology | Notes |
 |------|------------|-------|
-| Gateway | Django 5.0.6 | API proxy, optional minimal UI, email handling |
+| Gateway | Django 5.2.15 | API proxy, optional minimal UI, email handling |
 | Backend | Crow + C++17 + libpqxx | REST API and business logic |
 | Database | PostgreSQL 15 | schema and seed data loaded automatically in Docker |
 | Deployment | Docker Compose | primary lecturer-friendly run path |
@@ -90,10 +90,13 @@ Important design decisions:
 
 ```bash
 git clone <repo-url>
-cd crow_project
+cd <project-folder>
 cp .env.example .env
 docker compose up --build
 ```
+
+Replace the placeholder secret values in `.env` before starting the stack.
+If you prefer Windows automation, `.\start-all.ps1` copies `.env.example` and generates the local secret values for you.
 
 | Service | URL | Purpose |
 |--------|-----|---------|
@@ -125,24 +128,30 @@ This still uses Docker Compose and remains a convenience wrapper only.
 
 ## Environment Variables
 
-Copy `.env.example` to `.env`. The defaults are suitable for local development.
+Copy `.env.example` to `.env`. The file contains safe placeholders, not live shared secrets.
 
 | Variable | Default | Purpose |
 |---------|---------|---------|
 | `POSTGRES_DB` | `traffic_db` | database name |
 | `POSTGRES_USER` | `postgres` | database user |
-| `POSTGRES_PASSWORD` | `changeme` | database password |
-| `DJANGO_SECRET_KEY` | development placeholder | Django secret key |
-| `DJANGO_DEBUG` | `True` | Django debug mode |
+| `POSTGRES_PASSWORD` | generated locally | database password |
+| `DJANGO_SECRET_KEY` | generated locally or replaced manually | Django secret key |
+| `DJANGO_DEBUG` | `False` | Django debug mode |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | allowed hosts |
-| `DJANGO_API_KEY` | empty | optional API key for `/api/...` gateway access |
+| `DJANGO_API_KEY` | generated locally or replaced manually | API key for `/api/...` gateway access |
 | `DEFAULT_FROM_EMAIL` | `traffic-dept@example.com` | sender address |
 | `GOOGLE_MAPS_API_KEY` | empty | optional; default map rendering uses OSM/Leaflet |
+
+For gateway API requests, send the key stored in your local `.env` file:
+
+```text
+X-API-Key: <your DJANGO_API_KEY value>
+```
 
 ## Repository Structure
 
 ```text
-crow_project/
+project-root/
 ├── backend/
 │   ├── src/
 │   │   ├── DataAccessLayer/
@@ -192,7 +201,20 @@ crow_project/
 - `docs/week2/` contains Week 13 UML artefacts
 - `docs/week3/` contains Week 14 UML artefacts
 - `docs/week4/` contains Week 15 UML artefacts and the integrated class diagram
-- each week folder also keeps that week's presentation slides as `.pptx`
+
+## Assessment Walkthrough
+
+For lecturer marking, the fastest local validation path is:
+
+1. Start the stack with `docker compose up --build`.
+2. Open Postman with `postman/Traffic_Management_Collection.json` and `postman/Traffic_Management_Environment.json`.
+3. Set `django_api_key` in the Postman environment to the `DJANGO_API_KEY` stored in your local `.env`.
+4. Run the API requests through the Django gateway in this order:
+   - Week 12: register a vehicle, list vehicles, log a plate at a junction
+   - Week 13: detect a violation, inspect the created fine, pay or cancel a fine
+   - Week 14: analyse traffic, inspect congestion records, view route recommendations
+   - Week 15: list emergency vehicles, create an emergency event, inspect affected drivers
+5. Optionally open the Django pages for a lightweight visual walkthrough only.
 
 ## API Summary
 
@@ -239,7 +261,7 @@ Use the Django gateway as the primary interface:
 Recommended usage for a marker:
 
 1. Start the stack with Docker Compose.
-2. Use Postman or curl against `http://localhost:8000/api/...`
+2. Use Postman or curl against `http://localhost:8000/api/...` with the `X-API-Key` header from your local `.env`.
 3. Verify the weekly flows in order:
    - vehicle registration and plate logging
    - violation detection and fines
@@ -276,11 +298,12 @@ Import:
 - `postman/Traffic_Management_Collection.json`
 - `postman/Traffic_Management_Environment.json`
 
-Point the environment to the Django gateway and run the end-to-end workflow folder in sequence.
+The collection is prepared for the Django gateway path; run the end-to-end workflow folder in sequence.
+If you use the Django gateway path, include the `X-API-Key` header from your local `.env`.
 
 ### Manual Endpoint Validation
 
-Use Postman or curl against the gateway API and verify the weekly flows in this order:
+Use Postman or curl against the gateway API and include the `X-API-Key` value from your local `.env`, then verify the weekly flows in this order:
 
 1. register a vehicle
 2. log a number plate at a junction
@@ -317,7 +340,6 @@ Submission-relevant artefacts currently stored in the repo:
 
 - weekly UML PNG folders under `docs/week1` to `docs/week4`
 - integrated class diagram PNG in `docs/week4`
-- weekly slide decks in each `docs/weekX/` folder
 - Postman collection and environment in `postman/`
 
 ## Optional Web UI
@@ -351,4 +373,3 @@ Available optional pages:
 - Primary lecturer run path: Docker Compose
 - Primary lecturer interaction path: Django gateway API on port `8000`
 - Optional demo surface: minimal Django pages
-- Weekly slide decks are stored inside `docs/week1` to `docs/week4`
